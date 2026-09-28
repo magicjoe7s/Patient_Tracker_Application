@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -75,7 +76,8 @@ class RecoveryStore:
             )
             os.replace(temporary, self.path)
         except OSError as error:
-            temporary.unlink(missing_ok=True)
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
             raise RecoveryError("The recovery snapshot could not be written.") from error
 
     def clear(self) -> Path | None:
