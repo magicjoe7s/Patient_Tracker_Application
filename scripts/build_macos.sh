@@ -22,7 +22,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$python_bin" -m pip install -e ".[release]"
+"$python_bin" -m pip install -e ".[dev,release]"
 
 if [[ "${SKIP_TESTS:-0}" != "1" ]]; then
     "$python_bin" -m ruff check src tests

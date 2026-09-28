@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $projectRoot
 try {
-    python -m pip install -e ".[release]"
+    python -m pip install -e ".[dev,release]"
     if ($LASTEXITCODE -ne 0) { throw "Release dependencies could not be installed." }
 
     if (-not $SkipTests) {
