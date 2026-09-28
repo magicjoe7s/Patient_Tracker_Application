@@ -1,0 +1,55 @@
+QWidget {
+    background-color: #202326;
+    color: #e4e7eb;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 10pt;
+}
+
+QMainWindow, #centralWorkspace {
+    background-color: #1b1d20;
+}
+
+QMenuBar, QMenu, QToolBar, QStatusBar {
+    background-color: #272b30;
+    color: #e4e7eb;
+}
+
+QMenuBar::item:selected, QMenu::item:selected {
+    background-color: #39414a;
+}
+
+QToolBar, QStatusBar {
+    border-color: #3b4148;
+}
+
+QLineEdit, QPlainTextEdit, QListView, QComboBox, QSpinBox, QDoubleSpinBox {
+    background-color: #17191c;
+    border: 1px solid #454c55;
+    selection-background-color: #2f74b5;
+    selection-color: #ffffff;
+}
+
+QPushButton {
+    min-height: 28px;
+    padding: 2px 8px;
+    background-color: #30363d;
+    border: 1px solid #4b535d;
+}
+
+QPushButton:hover { background-color: #3a424b; }
+QPushButton:disabled { color: #777f88; }
+QTabBar::tab { padding: 6px 12px; background-color: #272b30; }
+QTabBar::tab:selected { background-color: #39414a; }
+QGroupBox {
+    border: 1px solid #454c55;
+    margin-top: 8px;
+    font-weight: 600;
+}
+QGroupBox::title { color: #67aee8; subcontrol-origin: margin; left: 8px; padding: 0 3px; }
+#patientNameEditor { font-size: 15pt; font-weight: 700; }
+#censusStatus { color: #93a7b8; }
+#patientHeader { font-size: 17pt; font-weight: 700; color: #f3f6f8; }
+#popupPatientHeader { font-size: 17pt; font-weight: 700; color: #f3f6f8; }
+#runningProblemList { background-color: #17191c; }
+#taskBoardGuidance { color: #93a7b8; }
+#mainWindow QPushButton { min-height: 24px; }
