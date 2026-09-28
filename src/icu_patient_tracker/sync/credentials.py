@@ -8,6 +8,8 @@ from ctypes import wintypes
 from importlib import import_module
 from typing import Any, Protocol, cast
 
+_CTYPES: Any = ctypes
+
 
 class TokenStore(Protocol):
     """Small credential-store contract consumed by Supabase authentication."""
@@ -51,7 +53,7 @@ class WindowsTokenStore:
     def _api(self) -> Any:
         if sys.platform != "win32":
             raise RuntimeError("Remembered sync login requires Windows Credential Manager.")
-        api = ctypes.WinDLL("advapi32", use_last_error=True)
+        api = _CTYPES.WinDLL("advapi32", use_last_error=True)
         api.CredWriteW.argtypes = [ctypes.POINTER(_Credential), wintypes.DWORD]
         api.CredWriteW.restype = wintypes.BOOL
         api.CredReadW.argtypes = [
@@ -70,7 +72,7 @@ class WindowsTokenStore:
         api = self._api()
         pointer = ctypes.POINTER(_Credential)()
         if not api.CredReadW(self.target, 1, 0, ctypes.byref(pointer)):
-            if ctypes.get_last_error() == 1168:
+            if _CTYPES.get_last_error() == 1168:
                 return None
             raise RuntimeError("Windows could not read the saved sync login.")
         try:
@@ -97,7 +99,10 @@ class WindowsTokenStore:
             raise RuntimeError("Windows could not save the sync login.")
 
     def delete(self) -> None:
-        if not self._api().CredDeleteW(self.target, 1, 0) and ctypes.get_last_error() != 1168:
+        if (
+            not self._api().CredDeleteW(self.target, 1, 0)
+            and _CTYPES.get_last_error() != 1168
+        ):
             raise RuntimeError("Windows could not remove the sync login.")
 
 

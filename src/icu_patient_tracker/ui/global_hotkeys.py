@@ -8,7 +8,7 @@ import sys
 from collections.abc import Callable, Mapping
 from ctypes import wintypes
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QCoreApplication
 
@@ -16,6 +16,7 @@ WM_HOTKEY = 0x0312
 MOD_ALT = 0x0001
 MOD_SHIFT = 0x0004
 MOD_NOREPEAT = 0x4000
+_CTYPES: Any = ctypes
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +44,7 @@ class WindowsHotkeyBackend:
     """Register global shortcuts through the Windows user32 API."""
 
     def __init__(self) -> None:
-        self._user32 = ctypes.WinDLL("user32", use_last_error=True)
+        self._user32 = _CTYPES.WinDLL("user32", use_last_error=True)
 
     def register(self, identifier: int, modifiers: int, virtual_key: int) -> bool:
         return bool(self._user32.RegisterHotKey(None, identifier, modifiers, virtual_key))

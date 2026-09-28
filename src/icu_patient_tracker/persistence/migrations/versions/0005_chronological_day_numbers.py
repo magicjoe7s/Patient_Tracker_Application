@@ -18,11 +18,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Renumber each patient's days by calendar date without violating uniqueness."""
     connection = op.get_bind()
-    patient_ids = tuple(
+    patient_ids: tuple[str, ...] = tuple(
         connection.execute(sa.text("SELECT id FROM patients ORDER BY id")).scalars()
     )
     for patient_id in patient_ids:
-        day_ids = tuple(
+        day_ids: tuple[str, ...] = tuple(
             connection.execute(
                 sa.text(
                     "SELECT id FROM hospital_days WHERE patient_id = :patient_id "

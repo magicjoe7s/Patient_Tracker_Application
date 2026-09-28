@@ -91,7 +91,9 @@ def upgrade() -> None:
     """Generate patient UUIDs and redirect hospital-day ownership without data loss."""
     connection = op.get_bind()
     _create_uuid_tables()
-    mrns = tuple(connection.execute(sa.text("SELECT mrn FROM patients")).scalars())
+    mrns: tuple[str, ...] = tuple(
+        connection.execute(sa.text("SELECT mrn FROM patients")).scalars()
+    )
     patient_ids = {mrn: uuid4().hex for mrn in mrns}
     for mrn, patient_id in patient_ids.items():
         connection.execute(

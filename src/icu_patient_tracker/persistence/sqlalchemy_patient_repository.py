@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Select, select
@@ -153,7 +154,7 @@ class SqlAlchemyPatientRepository:
             raise TransactionError("Patient MRN uniqueness could not be checked.") from error
 
     @staticmethod
-    def _aggregate_query(patient_id: UUID | None = None) -> Select[tuple[PatientRecord]]:
+    def _aggregate_query(patient_id: UUID | None = None) -> Select[Any]:
         statement = select(PatientRecord).options(
             selectinload(PatientRecord.hospital_days)
             .selectinload(HospitalDayRecord.problem_list)

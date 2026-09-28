@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "icu-patient-tracker"
-version = "0.1.1"
+version = "0.1.2"
 description = "Desktop workspace for veterinary ICU patient tracking"
 readme = "README.md"
 requires-python = ">=3.12"
