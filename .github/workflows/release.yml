@@ -58,15 +58,23 @@ jobs:
             echo "Release tag $GITHUB_REF_NAME does not match $expected from pyproject.toml." >&2
             exit 1
           fi
-      - name: Require production signing credentials
+      - name: Validate optional Apple signing credentials
         run: |
+          configured=0
           for name in MACOS_CERTIFICATE_P12 MACOS_CERTIFICATE_PASSWORD MACOS_SIGNING_IDENTITY APPLE_ID APPLE_TEAM_ID APPLE_APP_PASSWORD; do
-            if [[ -z "${!name}" ]]; then
-              echo "Required GitHub secret $name is not configured." >&2
-              exit 1
+            if [[ -n "${!name}" ]]; then
+              configured=$((configured + 1))
             fi
           done
+          if [[ "$configured" -ne 0 && "$configured" -ne 6 ]]; then
+            echo "Configure all six Apple signing secrets, or leave all six unset." >&2
+            exit 1
+          fi
+          if [[ "$configured" -eq 0 ]]; then
+            echo "Apple credentials are not configured; publishing an unsigned macOS test build."
+          fi
       - name: Import Apple signing certificate
+        if: ${{ env.MACOS_SIGNING_IDENTITY != '' }}
         env:
           CERTIFICATE_PATH: ${{ runner.temp }}/developer-id.p12
           KEYCHAIN_PATH: ${{ runner.temp }}/app-signing.keychain-db
@@ -91,7 +99,7 @@ jobs:
             --password "$APPLE_APP_PASSWORD"
           echo "MACOS_NOTARY_PROFILE=icu-patient-tracker-notary" >> "$GITHUB_ENV"
           echo "MACOS_NOTARY_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
-      - name: Build, sign, notarize, and verify macOS package
+      - name: Build and verify macOS package
         run: bash scripts/build_macos.sh
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
@@ -118,9 +126,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > release-notes.md <<'EOF'
+          ## Downloads
+
+          - **Windows:** download the `windows-x64.zip`, extract the complete folder, and run `ICU Patient Tracker.exe`.
+          - **Apple Silicon Mac:** download the `macos-arm64.dmg`, open it, and drag the app to Applications.
+
+          ## macOS security notice
+
+          This Mac build is unsigned because the project does not yet have an Apple Developer Program membership. macOS may block the first launch. In Finder, Control-click the app and choose **Open**. If it remains blocked, use **System Settings > Privacy & Security > Open Anyway** only after confirming the downloaded SHA-256 checksum.
+
+          This release contains no patient database or patient records. Each installation creates a new empty local database.
+          EOF
           gh release create "$GITHUB_REF_NAME" \
             release-assets/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "ICU Patient Tracker $GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file release-notes.md \
+            --prerelease \
             --verify-tag

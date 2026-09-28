@@ -42,8 +42,9 @@ Apple Silicon packages independently, requires both build and smoke-test jobs to
 publishes both installers and their checksums on one GitHub Release. Private-repository releases are
 available only to GitHub users who have been granted access to the repository.
 
-The production workflow deliberately fails instead of publishing an unsigned Mac application. Add
-these encrypted repository secrets before pushing a release tag:
+Without an Apple Developer Program membership, the release workflow publishes an unsigned Mac test
+build and gives recipients explicit Gatekeeper instructions. Once membership is available, add
+these encrypted repository secrets before pushing a later release tag:
 
 - `MACOS_CERTIFICATE_P12`: base64-encoded Developer ID Application certificate export
 - `MACOS_CERTIFICATE_PASSWORD`: password used when exporting that `.p12`
