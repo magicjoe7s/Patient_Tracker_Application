@@ -4,6 +4,15 @@ ICU Patient Tracker is a desktop application for veterinary ICU census managemen
 hospital-day charting, clinical tasks, SOAP notes, devices, reminders, search, analytics, and
 optional synchronization between approved computers.
 
+## Start here
+
+- [Download the Windows or macOS app from Releases](https://github.com/magicjoe7s/Patient_Tracker_Application/releases)
+- [Read or download the ICU Patient Tracker Quick Start Guide](docs/ICU-Patient-Tracker-Quick-Start-Guide.pdf)
+
+The Quick Start Guide explains the main screen, charting workflow, SOAP notes, tasks, reminders,
+backups, keyboard shortcuts, and recommended first-time setup without requiring readers to browse
+the rest of this repository.
+
 The supported application is the Python/PySide6 desktop release. Historical AutoHotkey material is
 retained only as a migration and interface reference under [`docs/legacy`](docs/legacy/).
 
