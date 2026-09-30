@@ -1,7 +1,7 @@
 # Automatic sync with Supabase
 
 The configured project is `vykqrhuqohmpxstudtto`. The application includes its
-public URL, publishable key, workspace ID and the three registered device IDs.
+public URL, publishable key, workspace ID and the four registered device IDs.
 These are public routing identifiers, not privileged database credentials.
 
 ## Connect each computer once
@@ -10,7 +10,7 @@ These are public routing identifiers, not privileged database credentials.
 2. Select **Laptop**, enter the tracker Auth email/password you created, and click
    **Connect and remember login**. This starts uploading the local patient records.
 3. Wait for **Sync: Synced** before setting up the other computers.
-4. On the work computer and desktop, install the same updated app, choose the
+4. On the work computer, desktop, and ER computer, install the same updated app, choose the
    matching device name and sign in with the same tracker account.
 
 You do not need to configure SQL or paste Supabase keys on each computer.
@@ -57,9 +57,11 @@ implemented.
 
 - `001_sync.sql`: private RLS tables, atomic version-checked push, idempotent
   receipts, ordered paginated pull, membership and device authorization.
-- `002_authorize_owner.sql`: the owner and three devices were authorized with
+- `002_authorize_owner.sql`: the owner and original three devices were authorized with
   explicit user approval. Authenticated users can execute RPCs only; functions
   still check the registered account/device. Anonymous access remains revoked.
+- `authorize_er_device.sql`: adds the separately identified ER computer without
+  changing or revoking the original three device registrations.
 - `003_clinical_sync.sql`: adds the versioned patient snapshot type while preserving
   those access restrictions. Applied successfully to the live project.
 - `verify_clinical_sync.sql`: passed in live PostgreSQL using fabricated records
@@ -67,7 +69,7 @@ implemented.
   stale-write conflicts, batch rollback, deletion, pagination and access denial.
 
 Local tests additionally exercise complete domain snapshots, separate SQLite
-files for three devices, offline edits, lost responses, conflict resolution,
+files for multiple devices, offline edits, lost responses, conflict resolution,
 deletions, credential refresh and background-thread callbacks.
 These tests do not claim three physical computers or the owner's authenticated
 HTTPS login have been tested. The final live sign-in requires the owner to enter

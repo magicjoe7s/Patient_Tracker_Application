@@ -8,4 +8,5 @@ DEVICES = {
     "Laptop": "40156dd8-fd58-4db3-afb2-430f35523567",
     "Work computer": "8b23052d-f9c9-4144-9d7e-a8a63c6aec84",
     "Desktop": "67a37659-d490-4432-96f8-66ab5e345b9b",
+    "ER": "6f74d87e-1d08-48e6-bd79-ded8356b2ac1",
 }
