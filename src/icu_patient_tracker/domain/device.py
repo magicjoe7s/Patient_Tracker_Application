@@ -12,6 +12,7 @@ from icu_patient_tracker.domain.exceptions import (
     InvalidStateTransitionError,
 )
 from icu_patient_tracker.domain.validation import (
+    require_aware_datetime,
     require_enum,
     require_text,
     require_uuid,
@@ -28,7 +29,7 @@ class Device:
     hospital_day_id: UUID
     device_type: DeviceType
     anatomical_location: str
-    placed_at: datetime
+    placed_at: datetime | None
     status: DeviceStatus = DeviceStatus.ACTIVE
     removed_at: datetime | None = None
     size: str | None = None
@@ -44,10 +45,10 @@ class Device:
         self.id = require_uuid(self.id, "id")
         self.device_type = require_enum(self.device_type, DeviceType, "device_type")
         self.status = require_enum(self.status, DeviceStatus, "status")
-        self.anatomical_location = require_text(self.anatomical_location, "anatomical_location")
+        self.anatomical_location = self.anatomical_location.strip()
         if self.size is not None:
             self.size = require_text(self.size, "size")
-        validate_timestamp_order(self.placed_at, self.removed_at, "placed_at", "removed_at")
+        self._validate_placement(self.removed_at)
         validate_audit_timestamps(self.created_at, self.updated_at)
         if self.status is DeviceStatus.REMOVED and self.removed_at is None:
             raise DomainValidationError("A removed device requires removed_at.")
@@ -63,10 +64,16 @@ class Device:
         if self.status is DeviceStatus.REMOVED:
             raise InvalidStateTransitionError("Device is already removed.")
         removal_time = removed_at or datetime.now(UTC)
-        validate_timestamp_order(self.placed_at, removal_time, "placed_at", "removed_at")
+        self._validate_placement(removal_time)
         self.status = DeviceStatus.REMOVED
         self.removed_at = removal_time
         self.updated_at = datetime.now(UTC)
+
+    def _validate_placement(self, removed_at: datetime | None) -> None:
+        if self.placed_at is not None:
+            validate_timestamp_order(self.placed_at, removed_at, "placed_at", "removed_at")
+        elif removed_at is not None:
+            require_aware_datetime(removed_at, "removed_at")
 
     def update_details(
         self,
@@ -77,7 +84,7 @@ class Device:
     ) -> None:
         """Edit supported placement metadata without changing device identity."""
         if anatomical_location is not None:
-            self.anatomical_location = require_text(anatomical_location, "anatomical_location")
+            self.anatomical_location = anatomical_location.strip()
         if size is not None:
             self.size = require_text(size, "size")
         if notes is not None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import date, datetime, time
 from uuid import UUID
 
@@ -45,7 +46,10 @@ class InstrumentationPanel(QWidget):
         self.checkboxes: dict[str, QCheckBox] = {}
 
         guidance = QLabel(
-            "Check a device to record its size, location, and placement date. "
+            ("Check a device; press Enter to skip optional size, location, or placement date. "
+             if sys.platform == "darwin"
+             else "Check a device to record its size, location, and placement date. ")
+            +
             "Active devices carry to the next hospital day."
         )
         guidance.setWordWrap(True)
@@ -139,20 +143,23 @@ class InstrumentationPanel(QWidget):
         location, accepted = QInputDialog.getText(
             self, f"Add {label}", "Location:", text=hint
         )
-        if not accepted or not location.strip():
+        if not accepted or (not location.strip() and sys.platform != "darwin"):
             self._restore_checkbox(label)
             return
         placed_text, accepted = QInputDialog.getText(
             self,
             f"Add {label}",
             "Date placed (YYYY-MM-DD):",
-            text=date.today().isoformat(),
+            text="" if sys.platform == "darwin" else date.today().isoformat(),
         )
         if not accepted:
             self._restore_checkbox(label)
             return
         try:
-            placed_date = date.fromisoformat(placed_text.strip())
+            placed_date = (
+                None if sys.platform == "darwin" and not placed_text.strip()
+                else date.fromisoformat(placed_text.strip())
+            )
         except ValueError:
             self._controller.error_raised.emit(
                 "Invalid placement date", "Enter the date as YYYY-MM-DD."
@@ -160,9 +167,12 @@ class InstrumentationPanel(QWidget):
             self._restore_checkbox(label)
             return
         local_zone = datetime.now().astimezone().tzinfo
-        placed_at = datetime.combine(placed_date, time(hour=8), tzinfo=local_zone)
+        placed_at = (
+            datetime.combine(placed_date, time(hour=8), tzinfo=local_zone)
+            if placed_date is not None else None
+        )
         if self._controller.add_device(
-            device_type, location.strip(), placed_at, size=size.strip() or None
+            device_type, location.strip() or hint, placed_at, size=size.strip() or None
         ) is None:
             self._restore_checkbox(label)
 

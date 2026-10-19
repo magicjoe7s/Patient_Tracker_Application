@@ -1,5 +1,8 @@
 # macOS Release Process
 
+For end-user installation, unsigned-app warnings, and the Mac workflow, start with the
+[Mac installation and quick-start guide](MacQuickStart.md).
+
 The macOS release is a native Apple Silicon application bundle distributed in a DMG. It uses the
 same SQLite database and Supabase synchronization protocol as the Windows release. Local data lives
 under `~/Library/Application Support/ICUPatientTracker`, and remembered refresh tokens are stored in
@@ -10,6 +13,10 @@ the user's macOS login Keychain.
 - macOS 13 or newer
 - Apple Silicon (`arm64`) for the automated build
 - A separately built Intel (`x86_64`) DMG is required for Intel Macs
+
+Mac builds constrain PySide6 to Qt 6.8–6.10 to retain the macOS 13 minimum.
+[Qt 6.12 requires macOS 14.4 or newer](https://doc.qt.io/qt-6/supported-platforms.html);
+do not remove this constraint without reviewing and updating the supported OS range.
 
 The Windows ZIP cannot run on macOS, and the macOS DMG cannot run on Windows.
 The in-app shortcuts continue to work, but the Windows-only system-wide shortcuts are not registered

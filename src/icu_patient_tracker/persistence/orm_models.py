@@ -270,7 +270,7 @@ class DeviceRecord(SyncTrackedRecord, Base):
         Enum(DeviceType, native_enum=False, values_callable=enum_values), nullable=False
     )
     anatomical_location: Mapped[str] = mapped_column(String(255), nullable=False)
-    placed_at: Mapped[datetime] = mapped_column(AwareDateTime(), nullable=False)
+    placed_at: Mapped[datetime | None] = mapped_column(AwareDateTime(), nullable=True)
     status: Mapped[DeviceStatus] = mapped_column(
         Enum(DeviceStatus, native_enum=False, values_callable=enum_values), nullable=False
     )

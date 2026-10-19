@@ -7,7 +7,11 @@ import pytest
 
 from icu_patient_tracker.domain.device import Device
 from icu_patient_tracker.domain.enums import DeviceType
-from icu_patient_tracker.services.instrumentation_service import device_output_label
+from icu_patient_tracker.domain.hospital_day import HospitalDay
+from icu_patient_tracker.services.instrumentation_service import (
+    device_output_label,
+    reconcile_instrumentation_lines,
+)
 
 
 def free_text_device(line: str) -> Device:
@@ -33,3 +37,12 @@ def test_free_text_output_device_aliases(line: str, expected: str) -> None:
 
 def test_unrelated_instrumentation_does_not_add_output() -> None:
     assert device_output_label(free_text_device("PIV — left cephalic")) is None
+
+
+def test_free_text_does_not_invent_placement_time() -> None:
+    start = datetime(2026, 10, 19, 8, tzinfo=UTC)
+    day = HospitalDay(uuid4(), start.date(), 1, start)
+    reconcile_instrumentation_lines(day, ("Peripheral catheter, details unknown",))
+    device = day.instrumentation.active_devices[0]
+    assert device.placed_at is None
+    assert device.created_at is not None

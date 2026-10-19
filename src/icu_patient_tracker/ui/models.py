@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from uuid import UUID
@@ -56,6 +57,8 @@ class StableListModel(QAbstractListModel):
             return row.secondary
         if role == Qt.ItemDataRole.AccessibleTextRole:
             return f"{row.primary} {row.secondary}".strip()
+        if role == Qt.ItemDataRole.ToolTipRole and sys.platform == "darwin":
+            return row.primary if not row.secondary else f"{row.primary}\n{row.secondary}"
         if role == Qt.ItemDataRole.CheckStateRole and row.checked is not None:
             return Qt.CheckState.Checked if row.checked else Qt.CheckState.Unchecked
         return None

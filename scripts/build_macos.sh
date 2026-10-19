@@ -98,3 +98,11 @@ digest="$(shasum -a 256 "$dmg_path" | awk '{print $1}')"
 printf '%s  %s\n' "$digest" "$(basename "$dmg_path")" > "$project_root/dist/SHA256SUMS-macos-$architecture.txt"
 echo "macOS release verified: $dmg_path"
 echo "SHA-256: $digest"
+
+if [[ -n "${MACOS_SIGNING_IDENTITY:-}" && -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
+    echo "Developer ID signed and notarized." > "$project_root/dist/macos-signing-status.txt"
+elif [[ -n "${MACOS_SIGNING_IDENTITY:-}" ]]; then
+    echo "Developer ID signed; not notarized. macOS may block first launch." > "$project_root/dist/macos-signing-status.txt"
+else
+    echo "Unsigned test build. macOS may block first launch; follow the Mac installation guide." > "$project_root/dist/macos-signing-status.txt"
+fi

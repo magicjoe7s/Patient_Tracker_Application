@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -133,7 +134,9 @@ class CanonicalSOAPMapper:
             "---",
             "",
             "*Daytime primary ICU resident:* "
-            f"{context.daytime_resident.strip() or 'Joseph Evans, D.V.M.'}",
+            f"{context.daytime_resident.strip() or (
+                INPUT_TOKEN if sys.platform == 'darwin' else 'Joseph Evans, D.V.M.'
+            )}",
             f"*Overnight ICU Resident:* {INPUT_TOKEN}",
             f"*Faculty:* {INPUT_TOKEN}",
         ]

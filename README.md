@@ -16,6 +16,13 @@ the rest of this repository.
 The supported application is the Python/PySide6 desktop release. Historical AutoHotkey material is
 retained only as a migration and interface reference under [`docs/legacy`](docs/legacy/).
 
+## Install on a Mac
+
+See the [step-by-step Mac installation and quick-start guide](docs/MacQuickStart.md),
+including checksum verification and **Privacy & Security > Open Anyway** for the
+“developer cannot be verified” warning. Apple Silicon and macOS 13 or newer are required.
+Update both Mac and Windows to compatible 0.1.5 clients before syncing updated records.
+
 ## Run the Windows application
 
 For normal use, extract the complete release ZIP and run `ICU Patient Tracker.exe` from the
@@ -42,7 +49,7 @@ The in-app **Menu > Help / Shortcuts** window is the authoritative shortcut and 
 
 Application data is device-local under `%LOCALAPPDATA%\ICUPatientTracker` by default. This includes
 the SQLite database, configuration, logs, backups, recovery data, and sync connection settings.
-The current database revision is `0014_clinical_sync`.
+The current database revision is `0015_optional_device_placement`.
 On macOS, the corresponding location is `~/Library/Application Support/ICUPatientTracker`.
 
 - Do not place the live SQLite database in a cloud-synchronized folder.

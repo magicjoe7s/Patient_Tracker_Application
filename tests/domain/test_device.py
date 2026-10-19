@@ -37,15 +37,24 @@ def test_device_creation_and_removal_preserve_history() -> None:
         device.mark_removed(removal)
 
 
-def test_device_rejects_invalid_timestamp_order_and_empty_location() -> None:
+def test_device_rejects_invalid_timestamp_order() -> None:
     placed = datetime(2026, 7, 20, 8, tzinfo=UTC)
     with pytest.raises(DomainValidationError, match="removed_at"):
         make_device(
             status=DeviceStatus.REMOVED,
             removed_at=placed - timedelta(minutes=1),
         )
-    with pytest.raises(DomainValidationError, match="anatomical_location"):
-        make_device(anatomical_location="")
+    assert make_device(anatomical_location="").anatomical_location == ""
+
+
+def test_unknown_placement_can_be_removed_without_inventing_a_date() -> None:
+    device = make_device(placed_at=None, anatomical_location="")
+    removed = datetime(2026, 7, 20, 8, tzinfo=UTC)
+    device.mark_removed(removed)
+    assert device.placed_at is None
+    assert device.removed_at == removed
+    with pytest.raises(DomainValidationError, match="timezone"):
+        make_device(placed_at=None, removed_at=datetime(2026, 7, 20), status=DeviceStatus.REMOVED)
 
 
 def test_device_records_nonempty_complications() -> None:

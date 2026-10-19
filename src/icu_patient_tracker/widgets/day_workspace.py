@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import date, datetime, time
 from uuid import UUID
 
@@ -378,7 +379,21 @@ class ClinicalDayPanel(QWidget):
         devices_layout = QVBoxLayout(devices_group)
         devices_layout.setContentsMargins(4, 4, 4, 4)
         devices_layout.addWidget(self.device_summary)
-        editor_grid.addWidget(devices_group, 1, 0)
+        self.mini_diagnostics: DoubleClickPlainTextEdit | None = None
+        self.chart_detail_tabs: QTabWidget | None = None
+        if sys.platform == "darwin":
+            self.mini_diagnostics = DoubleClickPlainTextEdit()
+            self.mini_diagnostics.setAccessibleName("Compact diagnostic results")
+            self.mini_diagnostics.setPlaceholderText(self.diagnostics.placeholderText())
+            self.mini_diagnostics.setDocument(self.diagnostics.document())
+            self.mini_diagnostics.double_clicked.connect(self.diagnostics_popup_requested)
+            self.chart_detail_tabs = QTabWidget()
+            self.chart_detail_tabs.setAccessibleName("Chart diagnostics and devices")
+            self.chart_detail_tabs.addTab(self.mini_diagnostics, "Dx")
+            self.chart_detail_tabs.addTab(devices_group, "Devices/Lines")
+            editor_grid.addWidget(self.chart_detail_tabs, 1, 0)
+        else:
+            editor_grid.addWidget(devices_group, 1, 0)
         assessment_group = QGroupBox("Assessment (AM)")
         assessment_layout = QVBoxLayout(assessment_group)
         assessment_layout.setContentsMargins(4, 4, 4, 4)
@@ -430,7 +445,7 @@ class ClinicalDayPanel(QWidget):
                 if patient_id is not None and day_id is not None
                 else ""
             )
-            set_plain_text_safely(self.summary, diagnostic_text, force=replace_focused)
+            self._set_diagnostic_text(diagnostic_text, force=replace_focused)
             set_plain_text_safely(self.treatment, day.treatment_changes, force=replace_focused)
             set_plain_text_safely(self.examination, day.physical_examination, force=replace_focused)
             set_plain_text_safely(self.assessment, day.assessment, force=replace_focused)
@@ -467,6 +482,12 @@ class ClinicalDayPanel(QWidget):
             if patient_id is not None and day_id is not None
             else ""
         )
+        self._set_diagnostic_text(text, force=force)
+
+    def _set_diagnostic_text(self, text: str, *, force: bool = False) -> None:
+        # Both views edit one document; guard the compact view's focused draft too.
+        if self.mini_diagnostics is not None and self.mini_diagnostics.hasFocus() and not force:
+            return
         set_plain_text_safely(self.diagnostics, text, force=force)
 
     def selected_diagnostic_task_id(self) -> UUID | None:

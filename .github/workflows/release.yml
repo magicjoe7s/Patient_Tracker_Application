@@ -108,6 +108,7 @@ jobs:
           path: |
             dist/*-macos-arm64.dmg
             dist/SHA256SUMS-macos-arm64.txt
+            dist/macos-signing-status.txt
           if-no-files-found: error
 
   publish:
@@ -134,10 +135,24 @@ jobs:
 
           ## macOS security notice
 
-          This Mac build is unsigned because the project does not yet have an Apple Developer Program membership. macOS may block the first launch. In Finder, Control-click the app and choose **Open**. If it remains blocked, use **System Settings > Privacy & Security > Open Anyway** only after confirming the downloaded SHA-256 checksum.
+          The Mac installation guide linked below includes checksum verification and the **System Settings > Privacy & Security > Open Anyway** procedure for a verified unsigned download.
+
+          ## Mac improvements
+
+          - Smaller, draggable patient sidebar with remembered width.
+          - Compact Dx editor alongside Devices/Lines, sharing the full diagnostic text.
+          - Skip optional device size, location, and placement date with Enter.
+          - Default daytime ICU resident is #INPUT#; configured names remain supported.
+
+          ## Synchronization upgrade
+
+          Update both Mac and Windows to 0.1.5 before syncing these records. Windows includes data compatibility without changing its chart layout or device-entry requirements. The sync server must accept snapshot version 4; see the Supabase setup guide.
 
           This release contains no patient database or patient records. Each installation creates a new empty local database.
           EOF
+          printf '\n[Step-by-step Mac installation and quick start](https://github.com/%s/blob/%s/docs/MacQuickStart.md)\n' "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" >> release-notes.md
+          printf '\n## Mac signing status\n\n' >> release-notes.md
+          cat release-assets/macos-signing-status.txt >> release-notes.md
           gh release create "$GITHUB_REF_NAME" \
             release-assets/* \
             --repo "$GITHUB_REPOSITORY" \

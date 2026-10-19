@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from icu_patient_tracker.domain.device import Device
@@ -51,7 +51,7 @@ class InstrumentationService(ServiceBase):
         *,
         device_type: DeviceType,
         anatomical_location: str,
-        placed_at: datetime,
+        placed_at: datetime | None,
         size: str | None = None,
         notes: str = "",
     ) -> Device:
@@ -162,11 +162,12 @@ def device_line(device: Device) -> str:
         DeviceType.ABDOMINAL_DRAIN: "Drain",
         DeviceType.FECAL_FOLEY: "Fecal foley",
     }.get(device.device_type, device.device_type.value.replace("_", " ").title())
-    details = [device.anatomical_location.strip()]
+    details = [device.anatomical_location.strip()] if device.anatomical_location.strip() else []
     if device.size:
         details.append(f"size {device.size}")
-    details.append(f"placed {device.placed_at.date().isoformat()}")
-    return f"{label}: " + " | ".join(details)
+    if device.placed_at is not None:
+        details.append(f"placed {device.placed_at.date().isoformat()}")
+    return f"{label}: " + " | ".join(details) if details else label
 
 
 _FREE_TEXT_OUTPUT_DEVICES: tuple[tuple[DeviceType, re.Pattern[str]], ...] = (
@@ -246,7 +247,7 @@ def reconcile_instrumentation_lines(day: HospitalDay, lines: tuple[str, ...]) ->
                 instrumentation.hospital_day_id,
                 DeviceType.OTHER,
                 line,
-                datetime.now(UTC),
+                None,
             )
             instrumentation.add(selected)
         retained.append(selected)

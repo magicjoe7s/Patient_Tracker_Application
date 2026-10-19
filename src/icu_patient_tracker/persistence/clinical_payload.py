@@ -45,14 +45,17 @@ _ENUMS = {
 
 
 def encode_patient(patient: Patient | None) -> dict[str, object]:
-    return {"schema_version": 1, "patient": _encode(patient)}
+    return {"schema_version": 4, "patient": _encode(patient)}
 
 
 def decode_patient(payload: dict[str, object], expected_id: UUID) -> Patient | None:
     if set(payload) != {"schema_version", "patient"} or type(payload["schema_version"]) is not int:
         raise ValueError("Unrecognized patient sync format.")
-    if payload["schema_version"] != 1:
-        raise ValueError("This patient sync format requires a newer app.")
+    if payload["schema_version"] not in {1, 4}:
+        raise ValueError(
+            "This patient sync format requires a newer app. "
+            "Update ICU Patient Tracker on both Mac and Windows before syncing."
+        )
     result = _decode(payload["patient"])
     if result is None:
         return None

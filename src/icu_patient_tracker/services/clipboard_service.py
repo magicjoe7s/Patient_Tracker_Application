@@ -144,9 +144,9 @@ def normalize_clipboard_newlines(text: str) -> str:
 
 def _format_device(device: Device) -> str:
     label = device.device_type.value.replace("_", " ").title()
-    details = [device.anatomical_location]
+    details = [device.anatomical_location] if device.anatomical_location else []
     if device.size:
         details.append(device.size)
     if device.notes:
         details.append(normalize_newlines(device.notes).replace("\n", " "))
-    return f"{label}: {' | '.join(details)}"
+    return f"{label}: {' | '.join(details)}" if details else label
