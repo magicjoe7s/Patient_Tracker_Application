@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from icu_patient_tracker.domain.device import Device
@@ -247,7 +247,7 @@ def reconcile_instrumentation_lines(day: HospitalDay, lines: tuple[str, ...]) ->
                 instrumentation.hospital_day_id,
                 DeviceType.OTHER,
                 line,
-                datetime.now(UTC),
+                None,
             )
             instrumentation.add(selected)
         retained.append(selected)
