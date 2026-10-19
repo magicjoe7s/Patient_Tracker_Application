@@ -214,7 +214,7 @@ class PatientPanel(QWidget):
             actions.setSpacing(2)
             for button, text in (
                 (self.new_button, "New"), (self.new_day_button, "Day"),
-                (self.backup_button, "Backup")
+                (self.backup_button, "↶")
             ):
                 button.setToolTip(button.text())
                 button.setAccessibleName(button.text())
@@ -228,6 +228,9 @@ class PatientPanel(QWidget):
             patient_actions.setMenu(self.patient_menu)
             disposition_row.insertWidget(0, patient_actions)
             mode_row.setSpacing(2)
+            self.patients_mode_button.setText("[Pts]")
+            self.patients_mode_button.setAccessibleName("Patients")
+            self.patients_mode_button.setToolTip("Patients")
             self.collapse_button.setFixedWidth(20)
             self.clear_search_button.setFixedWidth(20)
             self.popup_button.setText("↗")
@@ -236,6 +239,7 @@ class PatientPanel(QWidget):
             self.census_status.setWordWrap(True)
             self.empty_label.setWordWrap(True)
             self.list_view.setTextElideMode(Qt.TextElideMode.ElideRight)
+            self.list_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             for child in self.findChildren(QWidget):
                 if child not in (self.collapse_button, self.clear_search_button, self.popup_button):
                     child.setMinimumWidth(0)
@@ -298,13 +302,13 @@ class PatientPanel(QWidget):
 
     def show_patients_mode(self) -> None:
         self.sidebar_stack.setCurrentWidget(self.patient_page)
-        self.patients_mode_button.setText("[Patients]")
+        self.patients_mode_button.setText("[Pts]" if sys.platform == "darwin" else "[Patients]")
         self.tasks_mode_button.setText("Tasks")
 
     def show_tasks_mode(self) -> None:
         self.sidebar_tasks.refresh()
         self.sidebar_stack.setCurrentWidget(self.task_page)
-        self.patients_mode_button.setText("Patients")
+        self.patients_mode_button.setText("Pts" if sys.platform == "darwin" else "Patients")
         self.tasks_mode_button.setText("[Tasks]")
 
     def refresh(self) -> None:

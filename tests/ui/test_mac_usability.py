@@ -10,11 +10,12 @@ from PySide6.QtWidgets import QApplication, QInputDialog
 
 from icu_patient_tracker.app.bootstrap import create_runtime
 from icu_patient_tracker.app.config import AppConfig, ConfigManager
+from icu_patient_tracker.ui import main_window, models
 from icu_patient_tracker.widgets import day_workspace, instrumentation_panel, patient_panel
 
 
 def make_runtime(tmp_path: Path, monkeypatch, platform: str = "darwin"):
-    for module in (day_workspace, instrumentation_panel, patient_panel):
+    for module in (day_workspace, instrumentation_panel, patient_panel, main_window, models):
         monkeypatch.setattr(module, "sys", SimpleNamespace(platform=platform))
     config_path = tmp_path / "config.json"
     ConfigManager(config_path).save(AppConfig(
@@ -116,7 +117,8 @@ def test_compact_dx_shares_document_save_recovery_and_context(tmp_path, monkeypa
         mini.setPlainText("CBC: mild anemia")
         assert chart.diagnostics.toPlainText() == "CBC: mild anemia"
         assert chart.recovery_values()["clinical_summary"] == "CBC: mild anemia"
-        assert chart.save()
+        assert runtime.controller.context.is_dirty
+        assert runtime.controller.flush_pending()
         assert "mild anemia" in runtime.controller.diagnostic_text(
             runtime.controller.context.patient_id, runtime.controller.context.hospital_day_id
         )
@@ -160,6 +162,11 @@ def test_mac_sidebar_can_shrink_and_remembers_width(tmp_path, monkeypatch):
         assert abs(window.patient_panel.width() - width) <= 5
         # Explicit Qt elision retains full underlying patient text.
         assert window.patient_panel.list_view.textElideMode() == Qt.TextElideMode.ElideRight
+        tooltip = window.patient_panel.model.data(
+            window.patient_panel.model.index(0, 0), Qt.ItemDataRole.ToolTipRole
+        )
+        assert "Synthetic patient with a very long name" in tooltip
+        window.grab().save(str(tmp_path / "mac-sidebar-preview.png"))
     finally:
         runtime.shutdown()
     config = ConfigManager(tmp_path / "config.json").load()
