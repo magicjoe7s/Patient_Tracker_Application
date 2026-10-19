@@ -49,7 +49,7 @@ The in-app **Menu > Help / Shortcuts** window is the authoritative shortcut and 
 
 Application data is device-local under `%LOCALAPPDATA%\ICUPatientTracker` by default. This includes
 the SQLite database, configuration, logs, backups, recovery data, and sync connection settings.
-The current database revision is `0014_clinical_sync`.
+The current database revision is `0015_optional_device_placement`.
 On macOS, the corresponding location is `~/Library/Application Support/ICUPatientTracker`.
 
 - Do not place the live SQLite database in a cloud-synchronized folder.

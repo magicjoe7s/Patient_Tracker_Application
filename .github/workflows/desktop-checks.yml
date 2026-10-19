@@ -2,9 +2,6 @@ name: Verify desktop packages
 
 on:
   pull_request:
-  push:
-    branches:
-      - codex/mac-usability
   workflow_dispatch:
 
 permissions:
