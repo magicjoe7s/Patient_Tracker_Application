@@ -107,4 +107,4 @@ def test_pull_creates_patient_without_echo_and_propagates_delete(database_manage
 
 def test_newer_payload_version_rejected():
     with pytest.raises(ValueError, match="newer app"):
-        decode_patient({"schema_version": 2, "patient": None}, uuid4())
+        decode_patient({"schema_version": 99, "patient": None}, uuid4())

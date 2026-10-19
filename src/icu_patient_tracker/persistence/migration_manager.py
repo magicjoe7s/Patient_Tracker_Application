@@ -21,7 +21,7 @@ from icu_patient_tracker.persistence.exceptions import (
     UnsupportedSchemaVersionError,
 )
 
-CURRENT_SCHEMA_REVISION = "0014_clinical_sync"
+CURRENT_SCHEMA_REVISION = "0015_optional_device_placement"
 
 
 class MigrationManager:

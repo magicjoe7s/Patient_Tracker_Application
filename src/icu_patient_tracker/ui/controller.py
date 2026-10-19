@@ -919,7 +919,7 @@ class PresentationController(QObject):
         self,
         device_type: DeviceType,
         location: str,
-        placed_at: datetime,
+        placed_at: datetime | None,
         *,
         size: str | None = None,
     ) -> Device | None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
@@ -124,6 +125,9 @@ class MainWindow(QMainWindow):
         )
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setObjectName("centralWorkspace")
+        if sys.platform == "darwin":
+            self._splitter.setHandleWidth(6)
+            self._splitter.setToolTip("Drag the divider to resize the patient sidebar")
         self._splitter.addWidget(self.patient_panel)
         self.sidebar_toggle_rail = QWidget()
         self.sidebar_toggle_rail.setObjectName("sidebarToggleRail")

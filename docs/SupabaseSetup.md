@@ -1,5 +1,21 @@
 # Automatic sync with Supabase
 
+## Version 0.1.5 compatibility update
+
+Before updated clients synchronize, apply
+[`004_optional_device_snapshot_v4.sql`](../deployment/supabase/004_optional_device_snapshot_v4.sql)
+to the configured project, then run
+[`verify_optional_device_snapshot_v4.sql`](../deployment/supabase/verify_optional_device_snapshot_v4.sql).
+The migration adds format 4 to the existing push validator, preserving deployed
+formats 1–3, authorization, grants, conflict handling, and replay protection.
+It aborts if it cannot recognize the existing validator; do not replace the
+production function wholesale with an older version.
+
+Install compatible 0.1.5 clients on both Mac and Windows before syncing the new
+records. Their released-format reader accepts versions 1 and 4. Development
+formats 2 and 3 are not relabeled or silently discarded. See the
+[Mac quick start](MacQuickStart.md) for installation and update steps.
+
 The configured project is `vykqrhuqohmpxstudtto`. The application includes its
 public URL, publishable key, workspace ID and the four registered device IDs.
 These are public routing identifiers, not privileged database credentials.

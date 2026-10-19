@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 from uuid import UUID
 
-from PySide6.QtCore import QModelIndex, Signal
+from PySide6.QtCore import QModelIndex, Qt, Signal
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -18,6 +20,8 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -202,6 +206,61 @@ class PatientPanel(QWidget):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.addLayout(mode_row)
         layout.addWidget(self.sidebar_stack, 1)
+
+        if sys.platform == "darwin":
+            # Compact labels avoid imposing full action widths on the splitter.
+            self.setMinimumWidth(150)
+            actions.setContentsMargins(4, 4, 4, 4)
+            actions.setSpacing(2)
+            for button, text in (
+                (self.new_button, "New"), (self.new_day_button, "Day"),
+                (self.backup_button, "Backup")
+            ):
+                button.setToolTip(button.text())
+                button.setAccessibleName(button.text())
+                button.setText(text)
+            for button in (
+                self.home_button, self.imc_button, self.active_button, self.death_button
+            ):
+                button.hide()
+            patient_actions = QPushButton("Actions")
+            patient_actions.setAccessibleName("Selected patient actions and disposition")
+            patient_actions.setMenu(self.patient_menu)
+            disposition_row.insertWidget(0, patient_actions)
+            mode_row.setSpacing(2)
+            self.collapse_button.setFixedWidth(20)
+            self.clear_search_button.setFixedWidth(20)
+            self.popup_button.setText("↗")
+            self.popup_button.setToolTip("Open patient popup")
+            self.popup_button.setFixedWidth(24)
+            self.census_status.setWordWrap(True)
+            self.empty_label.setWordWrap(True)
+            self.list_view.setTextElideMode(Qt.TextElideMode.ElideRight)
+            for child in self.findChildren(QWidget):
+                if child not in (self.collapse_button, self.clear_search_button, self.popup_button):
+                    child.setMinimumWidth(0)
+                    child.setSizePolicy(
+                        QSizePolicy.Policy.Ignored, child.sizePolicy().verticalPolicy()
+                    )
+            task_controls = self.sidebar_tasks.layout()
+            if task_controls is not None:
+                for index in range(task_controls.count()):
+                    item = task_controls.itemAt(index)
+                    child_layout = item.layout() if item is not None else None
+                    if isinstance(child_layout, QHBoxLayout):
+                        child_layout.setDirection(QBoxLayout.Direction.TopToBottom)
+            for page, page_layout in (
+                (self.patient_page, patient_layout), (self.task_page, task_layout)
+            ):
+                contents = QWidget()
+                contents.setLayout(page_layout)
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+                scroll.setWidget(contents)
+                wrapper = QVBoxLayout(page)
+                wrapper.setContentsMargins(0, 0, 0, 0)
+                wrapper.addWidget(scroll)
 
         self.search.textChanged.connect(self.refresh)
         self.status_filter.currentIndexChanged.connect(self.refresh)

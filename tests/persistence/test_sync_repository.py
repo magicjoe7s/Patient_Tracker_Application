@@ -29,7 +29,7 @@ def test_sync_foundation_migration_adds_tables_and_tracking_columns(
 
     assert {"sync_devices", "sync_outbox", "sync_conflicts", "sync_state"} <= tables
     assert {"server_version", "deleted_at"} <= patient_columns
-    assert revision == ("0014_clinical_sync",)
+    assert revision == ("0015_optional_device_placement",)
 
 
 def test_device_identity_is_created_once_and_cursor_only_moves_forward(

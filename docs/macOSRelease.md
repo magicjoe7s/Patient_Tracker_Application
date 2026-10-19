@@ -1,5 +1,8 @@
 # macOS Release Process
 
+For end-user installation, unsigned-app warnings, and the Mac workflow, start with the
+[Mac installation and quick-start guide](MacQuickStart.md).
+
 The macOS release is a native Apple Silicon application bundle distributed in a DMG. It uses the
 same SQLite database and Supabase synchronization protocol as the Windows release. Local data lives
 under `~/Library/Application Support/ICUPatientTracker`, and remembered refresh tokens are stored in

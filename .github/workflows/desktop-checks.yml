@@ -1,0 +1,50 @@
+name: Verify desktop packages
+
+on:
+  pull_request:
+  push:
+    branches:
+      - codex/mac-usability
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Test, package, and smoke-test Windows
+        shell: pwsh
+        run: ./scripts/build_release.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-windows
+          path: |
+            dist/*-windows-x64.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Test, package, and smoke-test Mac
+        run: bash scripts/build_macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-macos
+          path: |
+            dist/*-macos-arm64.dmg
+            dist/SHA256SUMS-macos-arm64.txt
+            dist/macos-signing-status.txt
+          if-no-files-found: error

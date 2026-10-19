@@ -2,7 +2,11 @@
 
 from dataclasses import replace
 from datetime import date
+from types import SimpleNamespace
 
+import pytest
+
+from icu_patient_tracker.services import soap_mapping
 from icu_patient_tracker.services.soap_mapping import (
     CanonicalSOAPMapper,
     SOAPDiagnosticResult,
@@ -28,6 +32,18 @@ def context() -> SOAPRenderContext:
         overnight_resident="Dr. Night",
         faculty="Dr. Faculty",
     )
+
+
+@pytest.mark.parametrize("platform, expected", [
+    ("darwin", "#INPUT#"), ("win32", "Joseph Evans, D.V.M.")
+])
+def test_daytime_resident_platform_default_and_explicit_override(monkeypatch, platform, expected):
+    monkeypatch.setattr(soap_mapping, "sys", SimpleNamespace(platform=platform))
+    mapper = CanonicalSOAPMapper()
+    rendered = mapper.render(replace(context(), daytime_resident=""))
+    assert f"*Daytime primary ICU resident:* {expected}" in rendered
+    explicit = mapper.render(replace(context(), daytime_resident="Dr. Explicit"))
+    assert "*Daytime primary ICU resident:* Dr. Explicit" in explicit
 
 
 def test_canonical_template_matches_reference_order_and_values() -> None:
