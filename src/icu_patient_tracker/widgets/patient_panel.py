@@ -214,7 +214,7 @@ class PatientPanel(QWidget):
             actions.setSpacing(2)
             for button, text in (
                 (self.new_button, "New"), (self.new_day_button, "Day"),
-                (self.backup_button, "↶")
+                (self.backup_button, "Bkp")
             ):
                 button.setToolTip(button.text())
                 button.setAccessibleName(button.text())
