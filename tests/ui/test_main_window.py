@@ -1,5 +1,6 @@
 """Main shell and controlled-shutdown tests."""
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -66,7 +67,8 @@ def test_main_window_uses_legacy_reference_workspace_composition(tmp_path: Path)
             is window.workspace.charting.diagnostics
         )
         assert not window.workspace.charting.assessment.isHidden()
-        assert window.patient_panel.patients_mode_button.text() == "[Patients]"
+        expected_label = "[Pts]" if sys.platform == "darwin" else "[Patients]"
+        assert window.patient_panel.patients_mode_button.text() == expected_label
         assert window.patient_panel.tasks_mode_button.text() == "Tasks"
         window.patient_panel.show_tasks_mode()
         assert window.patient_panel.sidebar_stack.currentWidget() is window.patient_panel.task_page
