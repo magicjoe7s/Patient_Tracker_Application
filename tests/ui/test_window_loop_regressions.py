@@ -190,6 +190,21 @@ def test_real_theme_change_still_applies(runtime):
     assert runtime.application.styleSheet() != before
 
 
+def test_temporary_resize_or_minimize_cancels_queued_patient_popup(runtime):
+    assert runtime.window.patient_panel.create_patient(
+        mrn=None, name="Synthetic transient resize patient", species="Canine"
+    )
+    runtime.window.resize(780, 550)
+    runtime.window.resize(1000, 700)
+    runtime.application.processEvents()
+    assert runtime.window._patient_popup is None
+    runtime.window.resize(780, 550)
+    runtime.window.showMinimized()
+    runtime.application.processEvents()
+    assert runtime.window._patient_popup is None
+    runtime.window.showNormal()
+
+
 def test_failed_close_reports_once_and_keeps_app_available(runtime, monkeypatch):
     with monkeypatch.context() as patch:
         patch.setattr(runtime.controller, "shutdown", lambda: False)

@@ -1188,6 +1188,7 @@ class MainWindow(QMainWindow):
             return
         if (
             not self.isVisible()
+            or self.isMinimized()
             or not self._responsive_handoff_armed
             or self._responsive_handoff_scheduled
             or self._controller.context.hospital_day_id is None
@@ -1199,6 +1200,8 @@ class MainWindow(QMainWindow):
             self._responsive_handoff_scheduled = False
             if (
                 self.isVisible()
+                and not self.isMinimized()
+                and (self.width() < 820 or self.height() < 600)
                 and self._responsive_handoff_armed
                 and QApplication.activeModalWidget() is None
                 and self._error_dialog is None
