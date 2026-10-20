@@ -33,6 +33,7 @@ from icu_patient_tracker.domain.patient import Patient
 from icu_patient_tracker.services.search_service import SearchSort, SearchView
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.models import ListRow, StableListModel
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 from icu_patient_tracker.widgets.task_panel import TaskPanel
 
 DISPOSITION_LABELS = {
@@ -362,6 +363,7 @@ class PatientPanel(QWidget):
         self._update_action_state()
         return True
 
+    @non_reentrant
     def prompt_create(self) -> None:
         """Collect identity in an independent window while the tracker is minimized."""
         main_window = self.window()
@@ -390,6 +392,7 @@ class PatientPanel(QWidget):
             self._controller.select_patient(identifier)
             self._update_action_state()
 
+    @non_reentrant
     def _prompt_rename(self) -> None:
         patient = self._selected_patient()
         if patient is None:
@@ -450,6 +453,7 @@ class PatientPanel(QWidget):
         if self._controller.change_patient_status(patient.id, target):
             self.refresh()
 
+    @non_reentrant
     def _readmit(self) -> None:
         patient = self._selected_patient()
         if patient is not None and self._controller.readmit_patient(patient.id):
@@ -473,6 +477,7 @@ class PatientPanel(QWidget):
         )
         return answer is QMessageBox.StandardButton.Yes
 
+    @non_reentrant
     def _confirm_purge(self) -> None:
         patient = self._selected_patient()
         if patient is None:

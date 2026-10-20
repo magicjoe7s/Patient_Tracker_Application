@@ -53,6 +53,7 @@ from icu_patient_tracker.ui.autosave_adapter import QtAutosaveAdapter
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.event_adapter import QtEventAdapter
 from icu_patient_tracker.ui.recovery_adapter import QtRecoveryAdapter
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 from icu_patient_tracker.ui.reminder_adapter import QtReminderAdapter
 from icu_patient_tracker.ui.theme_manager import ThemeManager
 from icu_patient_tracker.widgets.day_workspace import DayWorkspace
@@ -100,6 +101,12 @@ class MainWindow(QMainWindow):
         self._exit_in_progress = False
         self._responsive_handoff_armed = True
         self._responsive_handoff_scheduled = False
+        self._structured_refresh = QTimer(self)
+        self._structured_refresh.setSingleShot(True)
+        self._structured_refresh.timeout.connect(self._refresh_structured_soap_fields)
+        self._recovery_offer_timer = QTimer(self)
+        self._recovery_offer_timer.setSingleShot(True)
+        self._recovery_offer_timer.timeout.connect(self._offer_recovery)
         self._last_sidebar_width = 190
         self.setObjectName("mainWindow")
         self.setWindowTitle("ICU Patient Tracker")
@@ -176,7 +183,7 @@ class MainWindow(QMainWindow):
         self._recovery.start()
         self._autosave.start()
         self._reminders.start()
-        QTimer.singleShot(0, self._offer_recovery)
+        self._recovery_offer_timer.start(0)
 
     @property
     def actions_by_name(self) -> dict[str, QAction]:
@@ -205,6 +212,8 @@ class MainWindow(QMainWindow):
         self._autosave.stop()
         self._reminders.stop()
         self._recovery.stop()
+        self._structured_refresh.stop()
+        self._recovery_offer_timer.stop()
         if self._error_dialog is not None:
             self._error_dialog.close()
         event.accept()
@@ -376,6 +385,7 @@ class MainWindow(QMainWindow):
             "focus_treatment": lambda _argument: self._focus_command("treatment"),
         }
 
+    @non_reentrant
     def _create_backup(self) -> None:
         path = self._controller.create_backup()
         if path is not None:
@@ -385,6 +395,7 @@ class MainWindow(QMainWindow):
                 f"A verified backup was created at:\n\n{path}",
             )
 
+    @non_reentrant
     def _restore_backup(self) -> None:
         config = self._controller.settings()
         initial = str(config.backup_directory) if config is not None else ""
@@ -442,6 +453,7 @@ class MainWindow(QMainWindow):
         self._invoke_action(parsed.action_name, parsed.argument)
         return True
 
+    @non_reentrant
     def _show_command_palette(self) -> None:
         dialog = CommandPaletteDialog(self._registry, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -733,8 +745,9 @@ class MainWindow(QMainWindow):
     def _handle_save_status(self, status: str) -> None:
         self._save_status.setText(status)
         if status == "Saved":
-            QTimer.singleShot(0, self._refresh_structured_soap_fields)
+            self._structured_refresh.start(0)
 
+    @non_reentrant
     def _offer_recovery(self) -> None:
         snapshot = self._controller.recovery_snapshot()
         if snapshot is None:
@@ -859,6 +872,7 @@ class MainWindow(QMainWindow):
         if self._digest_dialog is dialog:
             self._digest_dialog = None
 
+    @non_reentrant
     def _show_settings(self) -> None:
         dialog = SettingsDialog(self._controller, self)
         dialog.applied.connect(self._apply_theme)
@@ -1057,7 +1071,7 @@ class MainWindow(QMainWindow):
             self._patient_popup.refresh(force=canonical_refresh)
         # SOAP saves may reverse-map code status and day acuity while the autosave
         # commit still owns the dirty flag. Refresh again after that commit unwinds.
-        QTimer.singleShot(0, self._refresh_structured_soap_fields)
+        self._structured_refresh.start(0)
 
     def _refresh_structured_soap_fields(self) -> None:
         if self._controller.context.is_dirty:

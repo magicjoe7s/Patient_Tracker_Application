@@ -66,6 +66,9 @@ class QtReminderAdapter(QObject):
     ) -> None:
         super().__init__()
         self._service = service
+        self._stopped = False
+        self._polling = False
+        self._last_failure: str | None = None
         self._now = now or (lambda: datetime.now(UTC))
         self._notification_sink = notification_sink or QtSystemTrayNotificationSink()
         self._timer = QTimer(self)
@@ -77,10 +80,13 @@ class QtReminderAdapter(QObject):
         self._digest_snoozed_until: datetime | None = None
 
     def start(self) -> None:
+        self._stopped = False
         self.poll()
-        self._timer.start()
+        if not self._stopped:
+            self._timer.start()
 
     def stop(self) -> None:
+        self._stopped = True
         self._timer.stop()
         close = getattr(self._notification_sink, "close", None)
         if callable(close):
@@ -88,6 +94,9 @@ class QtReminderAdapter(QObject):
 
     def poll(self) -> None:
         """Perform one deterministic poll; useful directly in headless tests."""
+        if self._stopped or self._polling:
+            return
+        self._polling = True
         try:
             now = self._now()
             due = self._service.due()
@@ -98,8 +107,14 @@ class QtReminderAdapter(QObject):
                 self._notification_sink.show("ICU Patient Tracker", summary)
                 self._service.mark_shown(reminder.id for reminder in due)
             self._poll_digest(now)
+            self._last_failure = None
         except Exception as error:  # Qt callbacks cannot return errors to their caller.
-            self.failure.emit(str(error))
+            message = str(error)
+            if not self._stopped and message != self._last_failure:
+                self._last_failure = message
+                self.failure.emit(message)
+        finally:
+            self._polling = False
 
     def snooze_digest(self) -> None:
         """Hide the current digest for the standard five-minute interval."""
@@ -108,6 +123,8 @@ class QtReminderAdapter(QObject):
             self._digest_snoozed_until = self._now() + timedelta(minutes=5)
 
     def _poll_digest(self, now: datetime) -> None:
+        if self._stopped:
+            return
         hour = now.replace(minute=0, second=0, microsecond=0)
         if self._last_digest_hour is None and now.minute != 0:
             self._last_digest_hour = hour
@@ -123,9 +140,10 @@ class QtReminderAdapter(QObject):
         if self._digest_snoozed_until is not None and now < self._digest_snoozed_until:
             return
         self._displayed_digest = self._pending_digest
-        self.digest_ready.emit(self._displayed_digest)
+        # Consume before notifying: a subscriber may snooze immediately.
         self._pending_digest = None
         self._digest_snoozed_until = None
+        self.digest_ready.emit(self._displayed_digest)
 
     @staticmethod
     def _privacy_safe_summary(due_count: int) -> str:

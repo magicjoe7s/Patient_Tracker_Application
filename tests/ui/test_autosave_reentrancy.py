@@ -47,3 +47,21 @@ def test_failure_callback_cannot_schedule_another_save():
     assert coordinator.poll.call_count == 1
     assert failures == ["Synthetic save failure"]
     assert not adapter.is_active
+
+
+def test_stopping_during_save_does_not_report_a_late_failure():
+    application = QApplication.instance() or QApplication([])
+    coordinator = Mock()
+    adapter = QtAutosaveAdapter(coordinator)
+    failures = []
+    adapter.failure.connect(failures.append)
+
+    def save():
+        adapter.stop()
+        raise AutosaveServiceError("Synthetic failure during shutdown")
+
+    coordinator.poll.side_effect = save
+    adapter._poll()
+    application.processEvents()
+    assert coordinator.poll.call_count == 1
+    assert failures == []
