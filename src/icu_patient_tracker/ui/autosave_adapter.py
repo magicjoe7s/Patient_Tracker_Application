@@ -37,9 +37,10 @@ class QtAutosaveAdapter(QObject):
 
     def _poll_when_idle(self) -> None:
         """Run persistence only after Qt has returned to its event queue."""
-        self._poll_queued = False
         try:
             self._coordinator.poll()
         except AutosaveServiceError as error:
             self._timer.stop()
             self.failure.emit(str(error))
+        finally:
+            self._poll_queued = False

@@ -30,5 +30,8 @@ class ThemeManager:
             .joinpath("themes", f"{theme.value}.qss")
             .read_text(encoding="utf-8")
         )
+        # Preferences unrelated to appearance must not re-polish all windows.
+        if application.styleSheet() == stylesheet:
+            return theme
         application.setStyleSheet(stylesheet)
         return theme

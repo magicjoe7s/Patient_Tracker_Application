@@ -83,6 +83,8 @@ class MainWindow(QMainWindow):
         self._registry = ActionRegistry(DEFAULT_ACTIONS)
         self._action_handlers = self._create_action_handlers()
         self._digest_dialog: ReminderDigestDialog | None = None
+        self._error_dialog: QMessageBox | None = None
+        self._error_messages: list[str] = []
         self._task_board_dialog: TaskBoardDialog | None = None
         self._pending_diagnostics_dialog: PendingDiagnosticsDialog | None = None
         self._diagnostic_result_dialog: DiagnosticResultDialog | None = None
@@ -188,8 +190,7 @@ class MainWindow(QMainWindow):
             self.hide_to_tray()
             return
         if not self._controller.shutdown():
-            QMessageBox.critical(
-                self,
+            self._show_error(
                 "Unable to close safely",
                 "Pending changes could not be saved. The application remains open so the data "
                 "can be reviewed or saved again.",
@@ -204,6 +205,8 @@ class MainWindow(QMainWindow):
         self._autosave.stop()
         self._reminders.stop()
         self._recovery.stop()
+        if self._error_dialog is not None:
+            self._error_dialog.close()
         event.accept()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -622,13 +625,8 @@ class MainWindow(QMainWindow):
 
     def _set_completed_visibility(self, visible: bool) -> None:
         hidden = not visible
+        # One settings event updates every view without re-emitting toggle writes.
         self.workspace.tasks.set_all_hide_completed(hidden)
-        self.patient_panel.sidebar_tasks.set_all_hide_completed(hidden)
-        if self._task_board_dialog is not None:
-            for pane in self._task_board_dialog.panes.values():
-                pane.hide_completed.setChecked(hidden)
-        if self._pending_diagnostics_dialog is not None:
-            self._pending_diagnostics_dialog.hide_completed.setChecked(hidden)
 
     def _toggle_main_pin(self) -> None:
         self._set_main_pin(not self._main_pinned)
@@ -1095,8 +1093,42 @@ class MainWindow(QMainWindow):
             self._pending_diagnostics_dialog.reload_hide_preference()
 
     def _show_error(self, title: str, message: str) -> None:
+        """Report failures without nested event loops or a queue of blocking boxes."""
         self.statusBar().showMessage(message, 8000)
-        QMessageBox.warning(self, title, message)
+        entry = f"{title}: {message}"
+        if self._error_dialog is not None:
+            if entry not in self._error_messages:
+                self._error_messages = [*self._error_messages[-19:], entry]
+                self._error_dialog.setWindowTitle(title)
+                self._error_dialog.setText(message)
+                self._error_dialog.setDetailedText("\n\n".join(self._error_messages))
+            return
+        # The tracker can be hidden while an independent task board is active.
+        owner = QApplication.activeModalWidget() or QApplication.activeWindow()
+        if owner is None or not owner.isVisible() or owner.isMinimized():
+            owner = next(
+                (window for window in (
+                    self._task_board_dialog, self._patient_popup,
+                    self._diagnostic_result_dialog, self._pending_diagnostics_dialog,
+                    self._diagnostic_text_dialog, self._patient_search_dialog,
+                ) if window is not None and window.isVisible() and not window.isMinimized()),
+                self,
+            )
+        dialog = QMessageBox(
+            QMessageBox.Icon.Warning, title, message, QMessageBox.StandardButton.Ok, owner
+        )
+        dialog.setTextFormat(Qt.TextFormat.PlainText)
+        dialog.setWindowModality(Qt.WindowModality.NonModal)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._error_messages = [entry]
+        self._error_dialog = dialog
+        dialog.finished.connect(lambda _result: self._clear_error_dialog(dialog))
+        dialog.show()
+
+    def _clear_error_dialog(self, dialog: QMessageBox) -> None:
+        if self._error_dialog is dialog:
+            self._error_dialog = None
+            self._error_messages = []
 
     def _restore_presentation_state(self) -> None:
         config = self._controller.settings()
@@ -1165,7 +1197,12 @@ class MainWindow(QMainWindow):
 
         def handoff() -> None:
             self._responsive_handoff_scheduled = False
-            if self.isVisible() and self._responsive_handoff_armed:
+            if (
+                self.isVisible()
+                and self._responsive_handoff_armed
+                and QApplication.activeModalWidget() is None
+                and self._error_dialog is None
+            ):
                 self._show_patient_popup("soap")
 
         QTimer.singleShot(0, handoff)

@@ -14,6 +14,8 @@ class QtRecoveryAdapter(QObject):
     def __init__(self, service: RecoveryService, interval_ms: int = 100) -> None:
         super().__init__()
         self._service = service
+        self._polling = False
+        self._last_failure: str | None = None
         self._timer = QTimer(self)
         self._timer.setInterval(interval_ms)
         self._timer.timeout.connect(self._poll)
@@ -25,7 +27,17 @@ class QtRecoveryAdapter(QObject):
         self._timer.stop()
 
     def _poll(self) -> None:
+        if self._polling:
+            return
+        self._polling = True
         try:
             self._service.poll()
+            self._last_failure = None
         except RecoveryServiceError as error:
-            self.failure.emit(str(error))
+            # Keep retrying the draft, but notify once per persistent failure.
+            message = str(error)
+            if message != self._last_failure:
+                self._last_failure = message
+                self.failure.emit(message)
+        finally:
+            self._polling = False
