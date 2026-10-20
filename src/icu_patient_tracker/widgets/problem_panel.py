@@ -21,6 +21,7 @@ from icu_patient_tracker.domain.enums import ClinicalPriority, ProblemStatus
 from icu_patient_tracker.domain.problem import Problem
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.models import ListRow, StableListModel
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 
 
 class ProblemPanel(QWidget):
@@ -122,6 +123,7 @@ class ProblemPanel(QWidget):
         value = self.model.identifier(self.list_view.currentIndex())
         return value if isinstance(value, UUID) else None
 
+    @non_reentrant
     def _prompt_add(self) -> None:
         dialog = ProblemEditorDialog(self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -138,6 +140,7 @@ class ProblemPanel(QWidget):
             self.refresh()
             self.list_view.setCurrentIndex(self.model.index_for(created.id))
 
+    @non_reentrant
     def _prompt_edit(self, index: QModelIndex | None = None) -> None:
         del index
         problem_id = self.selected_id()
@@ -178,6 +181,7 @@ class ProblemPanel(QWidget):
         )
         self._set_status(target)
 
+    @non_reentrant
     def _confirm_remove(self) -> None:
         problem_id = self.selected_id()
         if problem_id is None:

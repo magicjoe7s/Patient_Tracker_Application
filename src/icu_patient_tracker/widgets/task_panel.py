@@ -21,6 +21,7 @@ from icu_patient_tracker.domain.enums import ReminderScheduleType, TaskCategory,
 from icu_patient_tracker.domain.task import Task
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.models import ListRow, StableListModel
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 
 
 class TaskPanel(QWidget):
@@ -181,6 +182,7 @@ class TaskPanel(QWidget):
         self._load_hide_preference()
         self.refresh()
 
+    @non_reentrant
     def _prompt_add(self, category: TaskCategory = TaskCategory.CLINICAL) -> None:
         dialog = TaskEditorDialog(self, category=category)
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -211,6 +213,7 @@ class TaskPanel(QWidget):
             self.refresh()
             self.list_view.setCurrentIndex(self.model.index_for(task.id))
 
+    @non_reentrant
     def _prompt_edit(self, index: QModelIndex | None = None) -> None:
         del index
         task_id = self.selected_id()
@@ -253,6 +256,7 @@ class TaskPanel(QWidget):
         if task_id is not None and self._controller.omit_diagnostic(task_id):
             self.refresh()
 
+    @non_reentrant
     def _confirm_delete(self) -> None:
         task_id = self.selected_id()
         if task_id is None:

@@ -36,6 +36,7 @@ from icu_patient_tracker.sync.supabase_auth import SupabaseAuth
 from icu_patient_tracker.sync.supabase_gateway import SupabaseSyncGateway
 from icu_patient_tracker.sync.validation import validate_change_page
 from icu_patient_tracker.ui.controller import PresentationController
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 from icu_patient_tracker.ui.sync_preview import describe_snapshot
 
 
@@ -147,17 +148,26 @@ class QtSyncAdapter(QObject):
         )
 
     def _start_job(self, operation: Callable[[], Any], success: Callable[[Any], None]) -> None:
+        if self.stopped or self.job is not None:
+            return
         job = _NetworkJob(operation, self)
         self.job = job
-        job.result_ready.connect(lambda result: success(result) if not self.stopped else None)
-        job.failed.connect(lambda text: self.button.setText("Sync: " + text))
-        job.finished.connect(self._job_finished)
+        job.result_ready.connect(
+            lambda result: success(result)
+            if not self.stopped and self.job is job else None
+        )
+        job.failed.connect(
+            lambda message: self.button.setText("Sync: " + message)
+            if not self.stopped and self.job is job else None
+        )
+        job.finished.connect(lambda: self._job_finished(job))
         job.start()
 
-    def _job_finished(self) -> None:
-        if self.job is not None:
-            self.job.deleteLater()
-            self.job = None
+    def _job_finished(self, job: _NetworkJob) -> None:
+        job.deleteLater()
+        if self.job is not job:
+            return
+        self.job = None
 
     def tick(self) -> None:
         if self.stopped or not self.enabled or self.job is not None or self.reviewing:
@@ -227,10 +237,13 @@ class QtSyncAdapter(QObject):
         self.window.workspace.refresh()
         self.window._refresh_task_views("", "synced")
 
+    @non_reentrant
     def show_settings(self) -> None:
+        if self.stopped:
+            return
         if self.job is not None:
-            QMessageBox.information(
-                self.window, "Sync", "A sync request is finishing. Try again shortly."
+            self.window.statusBar().showMessage(
+                "A sync request is finishing. Try again shortly.", 5000
             )
             return
         dialog = QDialog(self.window)
@@ -332,26 +345,32 @@ class QtSyncAdapter(QObject):
             self.review_conflicts()
 
         review.clicked.connect(review_all)
+        previous_reviewing = self.reviewing
         self.reviewing = True
         try:
             dialog.exec()
         finally:
-            self.reviewing = False
+            self.reviewing = previous_reviewing
 
+    @non_reentrant
     def review_conflicts(self) -> None:
+        if self.stopped:
+            return
         if not self.controller.flush_pending():
             return
         conflicts = self.service.conflicts()
         if not conflicts:
             QMessageBox.information(self.window, "Sync conflicts", "No unresolved conflicts.")
             return
+        previous_reviewing = self.reviewing
         self.reviewing = True
         try:
             for conflict in conflicts:
                 self._review_one(conflict)
         finally:
-            self.reviewing = False
+            self.reviewing = previous_reviewing
 
+    @non_reentrant
     def _review_one(self, conflict: SyncConflict) -> None:
         local, revision = self.service.local_version(conflict.entity_id)
         dialog = QDialog(self.window)

@@ -25,6 +25,7 @@ from icu_patient_tracker.domain.enums import TaskCategory, TaskStatus
 from icu_patient_tracker.services.task_service import TaskBoardRow
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.models import ListRow, StableListModel
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 
 
 class TaskBoardPane(QGroupBox):
@@ -127,6 +128,7 @@ class TaskBoardPane(QGroupBox):
         identifier = self.model.identifier(self.list_view.currentIndex())
         return self._rows.get(identifier) if isinstance(identifier, UUID) else None
 
+    @non_reentrant
     def _add(self) -> None:
         dialog = TaskEditorDialog(self, category=self._category)
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -144,6 +146,7 @@ class TaskBoardPane(QGroupBox):
         ):
             self.refresh()
 
+    @non_reentrant
     def _edit(self) -> None:
         row = self.selected_row()
         if row is None:
@@ -212,6 +215,7 @@ class TaskBoardPane(QGroupBox):
         self.hide_completed.blockSignals(False)
         self.refresh()
 
+    @non_reentrant
     def _delete(self) -> None:
         row = self.selected_row()
         if row is None:

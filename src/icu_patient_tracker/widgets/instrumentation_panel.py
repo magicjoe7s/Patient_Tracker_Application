@@ -20,6 +20,7 @@ from icu_patient_tracker.domain.device import Device
 from icu_patient_tracker.domain.enums import DeviceStatus, DeviceType
 from icu_patient_tracker.services.instrumentation_service import device_line
 from icu_patient_tracker.ui.controller import PresentationController
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 from icu_patient_tracker.ui.text_refresh import set_plain_text_safely
 
 _DEVICE_CHOICES: tuple[tuple[str, DeviceType, str], ...] = (
@@ -117,6 +118,7 @@ class InstrumentationPanel(QWidget):
         set_plain_text_safely(self.editor, values.get("lines", ""), force=True)
         self._mark_dirty()
 
+    @non_reentrant
     def _device_toggled(self, label: str, checked: bool) -> None:
         if self._rebuilding:
             return

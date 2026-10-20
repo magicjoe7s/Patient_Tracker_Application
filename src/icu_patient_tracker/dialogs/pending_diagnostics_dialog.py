@@ -23,6 +23,7 @@ from icu_patient_tracker.domain.enums import TaskCategory, TaskStatus
 from icu_patient_tracker.domain.task import Task
 from icu_patient_tracker.ui.controller import PresentationController
 from icu_patient_tracker.ui.models import ListRow, StableListModel
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 
 
 class PendingDiagnosticsDialog(QDialog):
@@ -122,6 +123,7 @@ class PendingDiagnosticsDialog(QDialog):
         value = self.model.identifier(self.list_view.currentIndex())
         return value if isinstance(value, UUID) else None
 
+    @non_reentrant
     def _add(self) -> None:
         dialog = TaskEditorDialog(self, category=TaskCategory.DIAGNOSTIC)
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -139,6 +141,7 @@ class PendingDiagnosticsDialog(QDialog):
         ):
             self.refresh()
 
+    @non_reentrant
     def _edit(self, _index: object = None) -> None:
         task_id = self.selected_id()
         if task_id is None:

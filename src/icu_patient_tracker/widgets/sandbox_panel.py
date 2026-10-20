@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from icu_patient_tracker.dialogs.sandbox_extraction_dialog import SandboxExtractionDialog
 from icu_patient_tracker.ui.controller import PresentationController
+from icu_patient_tracker.ui.reentrancy import non_reentrant
 from icu_patient_tracker.ui.text_refresh import set_plain_text_safely
 from icu_patient_tracker.utils.sandbox_input import format_sandbox_paste
 
@@ -93,6 +94,7 @@ class SandboxPanel(QWidget):
         self.status_label.setText("Saved")
         return True
 
+    @non_reentrant
     def preview_extraction(self) -> None:
         """Save, preview, and require confirmation before creating any task."""
         if not self.save():
