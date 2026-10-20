@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
@@ -164,6 +164,23 @@ def test_recovery_retries_without_reopening_same_failure(runtime):
     service.poll.side_effect = RecoveryServiceError("Recovery storage unavailable")
     adapter._poll()
     assert len(failures) == 2
+
+
+def test_destroying_active_workflow_does_not_leave_a_stale_error_window(runtime):
+    workflow = QDialog()
+    workflow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+    workflow.show()
+    workflow.activateWindow()
+    runtime.application.processEvents()
+    runtime.controller.error_raised.emit("Synthetic workflow", "Operation unavailable")
+    dialog = runtime.window._error_dialog
+    assert dialog is not None and dialog.parentWidget() is workflow
+    workflow.close()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert runtime.window._error_dialog is None
+    runtime.controller.error_raised.emit("Later operation", "Still available to report errors")
+    assert runtime.window._error_dialog is not None
+    runtime.window._error_dialog.close()
 
 
 def test_resize_does_not_open_patient_popup_over_modal_dialog(runtime):

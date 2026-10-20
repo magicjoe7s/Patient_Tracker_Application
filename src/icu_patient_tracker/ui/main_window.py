@@ -1123,6 +1123,7 @@ class MainWindow(QMainWindow):
         self._error_messages = [entry]
         self._error_dialog = dialog
         dialog.finished.connect(lambda _result: self._clear_error_dialog(dialog))
+        dialog.destroyed.connect(lambda _object=None: self._clear_error_dialog(dialog))
         dialog.show()
 
     def _clear_error_dialog(self, dialog: QMessageBox) -> None:
