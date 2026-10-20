@@ -99,6 +99,7 @@ class MainWindow(QMainWindow):
         self._main_pinned = False
         self._close_to_tray = False
         self._exit_in_progress = False
+        self._closing = False
         self._responsive_handoff_armed = True
         self._responsive_handoff_scheduled = False
         self._structured_refresh = QTimer(self)
@@ -204,10 +205,18 @@ class MainWindow(QMainWindow):
             )
             event.ignore()
             return
+        self._closing = True
         if self._patient_popup is not None:
             self._patient_popup.hide()
         if self._analytics_dialog is not None:
             self._analytics_dialog.hide()
+        for dialog in (
+            self._task_board_dialog, self._digest_dialog, self._diagnostic_result_dialog,
+            self._diagnostic_text_dialog, self._pending_diagnostics_dialog,
+            self._patient_search_dialog, self._help_dialog,
+        ):
+            if dialog is not None:
+                dialog.close()
         self._save_presentation_state()
         self._autosave.stop()
         self._reminders.stop()
@@ -256,6 +265,8 @@ class MainWindow(QMainWindow):
 
     def activate_main_window(self) -> None:
         """Restore and focus the main window after tray, hotkey, or launch activation."""
+        if self._closing:
+            return
         if self._patient_popup is not None:
             self._patient_popup.hide()
         self.showNormal()
@@ -290,6 +301,8 @@ class MainWindow(QMainWindow):
 
     def show_diagnostic_result_capture(self) -> None:
         """Open result capture for the selected patient/day from the global hotkey."""
+        if self._closing:
+            return
         if not self._controller.flush_pending():
             return
         patient_id = self._controller.context.patient_id
@@ -743,12 +756,16 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_save_status(self, status: str) -> None:
+        if self._closing:
+            return
         self._save_status.setText(status)
         if status == "Saved":
             self._structured_refresh.start(0)
 
     @non_reentrant
     def _offer_recovery(self) -> None:
+        if self._closing:
+            return
         snapshot = self._controller.recovery_snapshot()
         if snapshot is None:
             return
@@ -851,6 +868,8 @@ class MainWindow(QMainWindow):
                 self.workspace.sandbox.apply_recovery(entry.values)
 
     def _show_reminder_digest(self, digest: object) -> None:
+        if self._closing:
+            return
         if not isinstance(digest, HourlyDigest):
             return
         if self._digest_dialog is not None:
@@ -874,11 +893,15 @@ class MainWindow(QMainWindow):
 
     @non_reentrant
     def _show_settings(self) -> None:
+        if self._closing:
+            return
         dialog = SettingsDialog(self._controller, self)
         dialog.applied.connect(self._apply_theme)
         dialog.exec()
 
     def _show_task_board(self) -> None:
+        if self._closing:
+            return
         if self._task_board_dialog is None:
             self._task_board_dialog = TaskBoardDialog(self._controller, self)
             self._task_board_dialog.navigated.connect(self._return_from_task_board)
@@ -891,11 +914,15 @@ class MainWindow(QMainWindow):
         self._task_board_dialog.activateWindow()
 
     def _show_patient_search(self) -> None:
+        if self._closing:
+            return
         if self._patient_search_dialog is None:
             self._patient_search_dialog = PatientSearchDialog(self._controller, self)
         self._patient_search_dialog.show_search()
 
     def _show_pending_diagnostics(self) -> None:
+        if self._closing:
+            return
         if self._pending_diagnostics_dialog is None:
             self._pending_diagnostics_dialog = PendingDiagnosticsDialog(self._controller, self)
             self._pending_diagnostics_dialog.result_requested.connect(
@@ -918,6 +945,8 @@ class MainWindow(QMainWindow):
     def _show_diagnostic_result(
         self, patient_id: object, day_id: object, task_id: object = None
     ) -> None:
+        if self._closing:
+            return
         from uuid import UUID
 
         if not isinstance(patient_id, UUID) or not isinstance(day_id, UUID):
@@ -934,6 +963,8 @@ class MainWindow(QMainWindow):
         self._diagnostic_result_dialog.show_for(patient_id, day_id, selected_task)
 
     def _return_from_diagnostic_result(self) -> None:
+        if self._closing:
+            return
         if not self._diagnostic_result_from_task_board:
             return
         self._diagnostic_result_from_task_board = False
@@ -944,6 +975,8 @@ class MainWindow(QMainWindow):
             self._task_board_dialog.activateWindow()
 
     def _show_diagnostic_text_editor(self) -> None:
+        if self._closing:
+            return
         patient = self._controller.selected_patient()
         day = self._controller.selected_day()
         if patient is None or day is None:
@@ -966,6 +999,8 @@ class MainWindow(QMainWindow):
             self._diagnostic_text_dialog.accept()
 
     def _return_from_diagnostic_text_editor(self) -> None:
+        if self._closing:
+            return
         self.workspace.charting.refresh()
         self.workspace.soap.refresh(force=True)
         self.showNormal()
@@ -979,6 +1014,8 @@ class MainWindow(QMainWindow):
         self._show_patient_popup("soap")
 
     def _show_patient_popup(self, mode: str = "soap") -> None:
+        if self._closing:
+            return
         if not self._controller.flush_pending():
             return
         if self._patient_popup is None:
@@ -1009,6 +1046,8 @@ class MainWindow(QMainWindow):
             self._patient_popup.activateWindow()
 
     def _return_from_patient_popup(self) -> None:
+        if self._closing:
+            return
         self._responsive_handoff_armed = False
         self.workspace.soap.refresh(force=True)
         self.workspace.sandbox.refresh(force=True)
@@ -1017,6 +1056,8 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _return_from_task_board(self) -> None:
+        if self._closing:
+            return
         if self._task_board_dialog is not None:
             self._task_board_dialog.hide()
         self.showNormal()
@@ -1024,6 +1065,8 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _refresh_task_views(self, _task_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         self.workspace.tasks.refresh()
         self.patient_panel.sidebar_tasks.refresh()
         if self._task_board_dialog is not None:
@@ -1038,6 +1081,8 @@ class MainWindow(QMainWindow):
         self.workspace.charting.refresh_diagnostic_results()
 
     def _refresh_problem_views(self, _problem_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         self.workspace.problems.refresh()
         self.workspace.patient_summary.refresh_running_problems(
             force=_operation == "soap_problem_list"
@@ -1046,6 +1091,8 @@ class MainWindow(QMainWindow):
             self._controller.refresh_selected_problem_list_in_soap()
 
     def _refresh_instrumentation_views(self, _device_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         self.workspace.instrumentation.refresh(force=_operation == "soap_instrumentation")
         self.workspace.charting.refresh_device_summary(
             force=_operation == "soap_instrumentation"
@@ -1054,15 +1101,21 @@ class MainWindow(QMainWindow):
             self._controller.refresh_selected_instrumentation_in_soap()
 
     def _refresh_context_dialogs(self) -> None:
+        if self._closing:
+            return
         if self._pending_diagnostics_dialog is not None:
             self._pending_diagnostics_dialog.refresh()
 
     def _refresh_day_views(self, _day_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         self.workspace.refresh_day_views()
         if self._patient_popup is not None:
             self._patient_popup.refresh(force=False)
 
     def _refresh_soap_views(self, _soap_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         canonical_refresh = (
             _operation == "markdown_refreshed" and not self._controller.has_pending_editor("soap")
         )
@@ -1074,6 +1127,8 @@ class MainWindow(QMainWindow):
         self._structured_refresh.start(0)
 
     def _refresh_structured_soap_fields(self) -> None:
+        if self._closing:
+            return
         if self._controller.context.is_dirty:
             return
         self.workspace.patient_summary.refresh()
@@ -1081,12 +1136,16 @@ class MainWindow(QMainWindow):
         self.patient_panel.refresh()
 
     def _refresh_patient_views(self, _patient_id: str, _operation: str) -> None:
+        if self._closing:
+            return
         self.patient_panel.refresh()
         self.workspace.refresh_patient_views()
         if _operation == "soap_patient_summary":
             self.workspace.patient_summary.refresh(force=True)
 
     def _refresh_analytics(self) -> None:
+        if self._closing:
+            return
         if self._analytics_dialog is not None and self._analytics_dialog.isVisible():
             self._analytics_dialog.refresh()
 
@@ -1097,6 +1156,8 @@ class MainWindow(QMainWindow):
             self._theme_manager.apply(application, config.theme)
 
     def _refresh_settings(self) -> None:
+        if self._closing:
+            return
         self._apply_theme()
         self.workspace.tasks.reload_hide_preferences()
         self.patient_panel.sidebar_tasks.reload_hide_preferences()
@@ -1108,6 +1169,8 @@ class MainWindow(QMainWindow):
 
     def _show_error(self, title: str, message: str) -> None:
         """Report failures without nested event loops or a queue of blocking boxes."""
+        if self._closing:
+            return
         self.statusBar().showMessage(message, 8000)
         entry = f"{title}: {message}"
         if self._error_dialog is not None:

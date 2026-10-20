@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QDialog, QMessageBox
 
 from icu_patient_tracker.dialogs.new_patient_dialog import NewPatientDialog
 from icu_patient_tracker.dialogs.settings_dialog import SettingsDialog
+from icu_patient_tracker.domain.enums import TaskCategory
 from icu_patient_tracker.domain.reminder import Reminder
 from icu_patient_tracker.services.reminder_service import HourlyDigest
 from icu_patient_tracker.ui import sync_adapter
@@ -291,3 +292,48 @@ def test_shutdown_before_first_event_does_not_offer_recovery(tmp_path, monkeypat
     assert result.shutdown()
     result.application.processEvents()
     assert offer.call_count == 0
+
+
+def test_exit_from_diagnostic_capture_does_not_reopen_task_board(runtime):
+    assert runtime.window.patient_panel.create_patient(
+        mrn=None, name="Synthetic shutdown patient", species="Canine"
+    )
+    context = runtime.controller.context
+    task = runtime.controller.services.tasks.create(
+        context.patient_id,
+        context.hospital_day_id,
+        title="Synthetic diagnostic",
+        category=TaskCategory.DIAGNOSTIC,
+    )
+    runtime.window._show_task_board()
+    board = runtime.window._task_board_dialog
+    board.refresh()
+    row = board.panes[TaskCategory.DIAGNOSTIC]._rows[task.id]
+    runtime.window._show_diagnostic_result_for_board_row(row)
+    capture = runtime.window._diagnostic_result_dialog
+    assert capture.isVisible()
+    assert runtime.shutdown()
+    runtime.application.processEvents()
+    assert not capture.isVisible()
+    assert not board.isVisible()
+    assert not runtime.window.isVisible()
+
+
+def test_late_return_and_error_signals_do_not_reopen_closed_workspace(runtime):
+    assert runtime.window.patient_panel.create_patient(
+        mrn=None, name="Synthetic late-callback patient", species="Canine"
+    )
+    runtime.window._show_diagnostic_text_editor()
+    editor = runtime.window._diagnostic_text_dialog
+    assert editor.isVisible()
+    assert runtime.shutdown()
+    assert not editor.isVisible()
+    runtime.controller.error_raised.emit("Late failure", "Arrived after shutdown")
+    runtime.events.soap_changed.emit("", "markdown_refreshed")
+    runtime.window._return_from_patient_popup()
+    runtime.window._return_from_task_board()
+    runtime.window._return_from_diagnostic_text_editor()
+    runtime.window.activate_main_window()
+    runtime.application.processEvents()
+    assert runtime.window._error_dialog is None
+    assert not runtime.window.isVisible()
