@@ -59,23 +59,33 @@ def test_repeated_modal_action_opens_once_and_can_be_reopened(runtime, monkeypat
 
 
 def test_modal_action_can_be_retried_after_an_exception(runtime, monkeypatch):
-    execute = Mock(
-        side_effect=[RuntimeError("Synthetic dialog failure"), QDialog.DialogCode.Rejected]
-    )
+    calls = []
+
+    def execute(dialog):
+        calls.append(dialog)
+        if len(calls) == 1:
+            raise RuntimeError("Synthetic dialog failure")
+        return QDialog.DialogCode.Rejected
+
     monkeypatch.setattr(SettingsDialog, "exec", execute)
     with pytest.raises(RuntimeError, match="Synthetic dialog failure"):
         runtime.window._show_settings()
     runtime.window._show_settings()
-    assert execute.call_count == 2
+    assert len(calls) == 2
 
 
 def test_real_task_board_button_still_opens_one_editor(runtime, monkeypatch):
     runtime.window._show_task_board()
     pane = next(iter(runtime.window._task_board_dialog.panes.values()))
-    execute = Mock(return_value=QDialog.DialogCode.Rejected)
+    calls = []
+
+    def execute(dialog):
+        calls.append(dialog)
+        return QDialog.DialogCode.Rejected
+
     monkeypatch.setattr(QDialog, "exec", execute)
     pane.add_button.click()
-    assert execute.call_count == 1
+    assert len(calls) == 1
 
 
 def test_device_prompt_does_not_reenter_from_another_toggle(runtime, monkeypatch):
@@ -225,9 +235,11 @@ def test_sync_jobs_are_serialized_and_stale_callbacks_are_ignored(runtime, monke
 def test_sync_busy_and_stopped_actions_do_not_open_message_boxes(runtime, monkeypatch):
     monkeypatch.setattr(sync_adapter, "_NetworkJob", FakeNetworkJob)
     adapter = runtime.sync
-    monkeypatch.setattr(
-        QMessageBox, "information", Mock(side_effect=AssertionError("Blocking notice"))
-    )
+
+    def blocking_notice(*args, **kwargs):
+        pytest.fail("A busy sync action opened a blocking notice")
+
+    monkeypatch.setattr(QMessageBox, "information", blocking_notice)
     adapter._start_job(lambda: None, lambda result: None)
     current = adapter.job
     for _ in range(5):
@@ -239,14 +251,19 @@ def test_sync_busy_and_stopped_actions_do_not_open_message_boxes(runtime, monkey
     current.failed.emit("Late failure")
     current.result_ready.emit("Late result")
     current.finished.emit()
-    execute = Mock(side_effect=AssertionError("Dialog reopened after stop"))
+    calls = []
+
+    def execute(dialog):
+        calls.append(dialog)
+        pytest.fail("Dialog reopened after stop")
+
     monkeypatch.setattr(QDialog, "exec", execute)
     adapter.show_settings()
     adapter.review_conflicts()
     adapter._start_job(lambda: None, lambda result: None)
     assert adapter.button.text() == before
     assert adapter.job is None
-    assert execute.call_count == 0
+    assert calls == []
 
 
 def test_stopping_autosave_cancels_a_queued_save(runtime, monkeypatch):
@@ -286,12 +303,16 @@ def test_shutdown_cancels_queued_chart_refreshes(runtime, monkeypatch):
 
 
 def test_shutdown_before_first_event_does_not_offer_recovery(tmp_path, monkeypatch):
-    offer = Mock()
+    calls = []
+
+    def offer(window):
+        calls.append(window)
+
     monkeypatch.setattr(MainWindow, "_offer_recovery", offer)
     result = make_runtime(tmp_path)
     assert result.shutdown()
     result.application.processEvents()
-    assert offer.call_count == 0
+    assert calls == []
 
 
 def test_exit_from_diagnostic_capture_does_not_reopen_task_board(runtime):
